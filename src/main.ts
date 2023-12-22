@@ -9,7 +9,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = new DocumentBuilder()
     .setTitle('NestJS File Module With TypeORM')
-    .setDescription('github.com/emrhncalskn/NestJS-File-Module-With-TypeORM-')
+    .setDescription('github.com/emrhncalskn/NestJS-File-Module-With-TypeORM')
     .setVersion('1.2')
     .addBearerAuth()
     .build();
