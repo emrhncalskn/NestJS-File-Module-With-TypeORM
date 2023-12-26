@@ -33,7 +33,7 @@ export class FileService {
             } else {
                 files = await fsPromises.readdir(FileDestinationConstant.DEST + path);
                 files.forEach(file => {
-                    documents.push({ file: `/${path}/${file}` });
+                    documents.push({ file: `${path}/${file}` });
                 });
             }
 
@@ -47,7 +47,6 @@ export class FileService {
     async uploadFile(file: FileDto, route: string) {
 
         const type = file.originalname.split('.')[1];
-        file.alt = await this.fillEmpty(file.originalname);
 
         const findType = await this.findFileType(type);
         if (!findType) { throw new HttpException('File not found', HttpStatus.NOT_FOUND); }
@@ -57,6 +56,7 @@ export class FileService {
         const newPath = `${oldPath}${route}/${path}`;
 
         file.originalname = await this.fillEmpty(file.originalname);
+        file.alt = await this.fillEmpty(file.originalname);
         file.destination += `/${route}/${path}/${file.filename}`;
         file.type_id = findType.id;
         file.path = `/${route}/${path}/${file.filename}`;
