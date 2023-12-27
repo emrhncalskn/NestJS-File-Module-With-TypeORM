@@ -61,6 +61,11 @@ export class FileController {
     return await this.fileService.createFileType(type);
   }
 
+  @Get('delete/type/:name')
+  async deleteFileType(@Param('name') name: string) {
+    return await this.fileService.deleteFileType(name);
+  }
+
   @Get('delete/:path')
   async deleteFile(@Param('path') path: string) {
     return await this.fileService.deleteFile(path);

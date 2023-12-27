@@ -81,6 +81,13 @@ export class FileService {
         }
     }
 
+    async deleteFileType(name: string) {
+        const file_type = await this.findFileType(name);
+        if (!file_type) { throw new HttpException('File type not found', HttpStatus.NOT_FOUND); }
+        await this.fileTypeRepository.delete(file_type.id);
+        return { message: 'File type deleted successfully' };
+    }
+
     async findFileById(id: number) {
         const file = await this.fileRepository.findOne({ where: { id } });
         if (!file) { throw new HttpException('File not found', HttpStatus.NOT_FOUND); }
