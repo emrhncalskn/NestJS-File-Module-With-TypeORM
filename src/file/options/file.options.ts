@@ -1,9 +1,8 @@
 import { HttpException, HttpStatus } from "@nestjs/common";
 import { MulterOptions } from "@nestjs/platform-express/multer/interfaces/multer-options.interface";
-import { diskStorage, memoryStorage } from 'multer';
-import { FileDestinationConstant, FileTypeConstant } from "./file.constant";
-import axios from 'axios';
 import { config } from 'dotenv';
+import { diskStorage } from 'multer';
+import { FileDestinationConstant, FileTypeConstant } from "./file.constant";
 
 config();
 const fileTypeConstant = new FileTypeConstant;
