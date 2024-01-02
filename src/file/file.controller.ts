@@ -1,10 +1,11 @@
-import { Body, Controller, FileTypeValidator, Get, Param, ParseFilePipe, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, FileTypeValidator, Get, Param, ParseFilePipe, Post, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { FileTypeDto } from './dto/file.dto';
 import { FileService } from './file.service';
 import { FileTypeConstant } from './options/file.constant';
 import { FileApiOptions, FileUploadOptions } from './options/file.options';
+import { Response } from 'express';
 
 const fileTypeConstant = new FileTypeConstant;
 
@@ -37,8 +38,8 @@ export class FileController {
   }
 
   @Get('bytype/:type')
-  async getFileByType(@Param('type') type: string) {
-    return await this.fileService.getFilesByType(type);
+  async getFileByType(@Param('type') type: string, @Res() res: Response) {
+    return await this.fileService.getFileByType(type, res);
   }
 
   @Get('type/:name')
@@ -66,8 +67,8 @@ export class FileController {
     return await this.fileService.deleteFileType(name);
   }
 
-  @Get('delete/:path')
-  async deleteFile(@Param('path') path: string) {
-    return await this.fileService.deleteFile(path);
+  @Get('delete/:id')
+  async deleteFile(@Param('id') id: number) {
+    return await this.fileService.deleteFile(Number(id));
   }
 }

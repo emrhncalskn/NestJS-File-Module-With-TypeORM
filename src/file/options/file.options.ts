@@ -24,8 +24,6 @@ export const FileUploadOptions = (): MulterOptions => ({
         },
     }),
     fileFilter: async (req, file, cb) => {
-        console.log(file.originalname)
-        console.log(file)
         const type = file.originalname.split('.')[1];
         const response = await axios.get(process.env.GET_FILE_TYPES_API_ROUTE);
         if (response.data.length < 1) return cb(new HttpException('File types not found', HttpStatus.NOT_FOUND), false);

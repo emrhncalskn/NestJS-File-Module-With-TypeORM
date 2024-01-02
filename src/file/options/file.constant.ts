@@ -15,3 +15,6 @@ export class FileTypeConstant {
 export class FileDestinationConstant {
     static readonly DEST = './assets/files/uploads';
 }
+
+
+// todo sadece file id ve type donsun

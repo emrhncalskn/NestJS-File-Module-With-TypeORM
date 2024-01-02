@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { File } from './entities/file.entity';
 import { FileType } from './entities/file_type.entity';
+import { Response } from 'express';
 
 @Injectable()
 export class FileService {
@@ -46,28 +47,34 @@ export class FileService {
 
     async uploadFile(file: FileDto, route: string) {
 
-        const type = file.originalname.split('.')[1];
+        try {
+            const fileType = file.originalname.split('.')[1];
 
-        const findType = await this.findFileType(type);
-        if (!findType) { throw new HttpException('File not found', HttpStatus.NOT_FOUND); }
+            const findType = await this.findFileType(fileType);
+            if (!findType) { throw new HttpException('File not found', HttpStatus.NOT_FOUND); }
 
-        let path = findType.type;
-        const pathFix = file.path.replace(/\\/g, '/'), oldPath = pathFix.replace(file.filename, '');
-        const newPath = `${oldPath}${route}/${path}`;
+            let filePath = findType.type;
+            const pathFix = file.path.replace(/\\/g, '/'), oldPath = pathFix.replace(file.filename, '');
+            const newPath = `${oldPath}${route}/${filePath}`;
 
-        file.originalname = await this.fillEmpty(file.originalname);
-        file.alt = await this.fillEmpty(file.originalname);
-        file.destination += `/${route}/${path}/${file.filename}`;
-        file.type_id = findType.id;
-        file.path = `/${route}/${path}/${file.filename}`;
+            file.originalname = await this.fillEmpty(file.originalname);
+            file.alt = await this.fillEmpty(file.originalname);
+            file.destination += `/${route}/${filePath}/${file.filename}`;
+            file.type_id = findType.id;
+            file.path = `/${route}/${filePath}/${file.filename}`;
 
-        const create = this.fileRepository.create(file);
-        await this.fileRepository.save(create);
+            const create = this.fileRepository.create(file);
+            await this.fileRepository.save(create);
 
+            const { originalname, alt, destination, filename, size, path, type, ...result } = create;
 
-        if (!fs.existsSync(newPath)) { fs.mkdirSync(newPath, { recursive: true }); }
-        fs.renameSync(`${oldPath}${file.filename}`, `${newPath}/${file.filename}`);
-        return create;
+            if (!fs.existsSync(newPath)) { fs.mkdirSync(newPath, { recursive: true }); }
+            fs.renameSync(`${oldPath}${file.filename}`, `${newPath}/${file.filename}`);
+            return result;
+        }
+        catch (err) {
+            throw new HttpException('Something went wrong', HttpStatus.BAD_REQUEST);
+        }
     }
 
     async createFileType(file_type: FileTypeDto) {
@@ -100,6 +107,16 @@ export class FileService {
         return file;
     }
 
+    async getFileByType(type: string, res: Response) {
+        try {
+            const result = await this.findFilesByType(type);
+            return res.status(HttpStatus.OK).json(result);
+        } catch (error) {
+            res.status(HttpStatus.NOT_FOUND).json({ message: error.message });
+        }
+    }
+
+
     async findFileType(name: string) {
         const file_type = await this.fileTypeRepository.findOne({ where: { name } });
         if (!file_type) { throw new HttpException('File type not found', HttpStatus.NOT_FOUND); }
@@ -118,7 +135,7 @@ export class FileService {
         return file_types;
     }
 
-    async getFilesByType(type: string) {
+    async findFilesByType(type: string) {
         const file_type = await this.findFileType(type);
         if (!file_type) { throw new HttpException('File type not found', HttpStatus.NOT_FOUND); }
         const files = await this.fileRepository.find({ where: { type_id: file_type.id } });
@@ -144,11 +161,15 @@ export class FileService {
         }
     }
 
-    async deleteFile(path: string) {
+    async deleteFile(id: number) {
         let msg = null;
-        const file = await this.findFileByPath(path);
+        const file = await this.findFileById(id);
         if (!file) { throw new HttpException('File not found', HttpStatus.NOT_FOUND); }
 
+        let path = file.path;
+        console.log('path', path)
+        console.log(file)
+        console.log(id)
         await this.fileRepository.delete(file.id);
 
         const isFileExists = await this.isFileExists(FileDestinationConstant.DEST + path);
