@@ -16,5 +16,8 @@ export class FileTypeDto {
     name: string;
     @ApiProperty()
     type: string;
+    @ApiProperty()
+    mime_type: string;
+
 }
 

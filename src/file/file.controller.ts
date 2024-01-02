@@ -1,4 +1,4 @@
-import { Body, Controller, FileTypeValidator, Get, Param, ParseFilePipe, Post, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, FileTypeValidator, Get, Param, ParseFilePipe, Post, Req, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { FileTypeDto } from './dto/file.dto';
@@ -16,10 +16,12 @@ export class FileController {
 
   @Post('upload/:route')
   @ApiConsumes('multipart/form-data') @ApiBody(FileApiOptions())
-  @UseInterceptors(FileInterceptor('file', FileUploadOptions(),))
-  async uploadImage(@Param('route') route: string, @UploadedFile(new ParseFilePipe(
-    { validators: [new FileTypeValidator({ fileType: fileTypeConstant.FILE })] })) file: Express.Multer.File) {
-    return await this.fileService.uploadFile(file, route);
+  @UseInterceptors(FileInterceptor('file', FileUploadOptions())) // FileType REpository den cekılecek.
+  async uploadImage(@Param('route') route: string, @UploadedFile(
+    new ParseFilePipe({ 
+      validators: [new FileTypeValidator({ fileType: fileTypeConstant.FILE })] 
+    })) file: Express.Multer.File, @Res() res: Response) {
+    return await this.fileService.uploadFile(file, route, res);
   }
 
   @Get()

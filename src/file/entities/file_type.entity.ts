@@ -9,7 +9,8 @@ export class FileType {
     name: string;
     @Column()
     type: string;
-
+    @Column({ nullable: true})
+    mime_type: string;
     @OneToMany(() => File, (file) => file.type)
     files: File[];
 }

@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus } from "@nestjs/common";
 import { MulterOptions } from "@nestjs/platform-express/multer/interfaces/multer-options.interface";
-import { diskStorage } from 'multer';
+import { diskStorage, memoryStorage } from 'multer';
 import { FileDestinationConstant, FileTypeConstant } from "./file.constant";
 import axios from 'axios';
 import { config } from 'dotenv';
@@ -24,19 +24,14 @@ export const FileUploadOptions = (): MulterOptions => ({
         },
     }),
     fileFilter: async (req, file, cb) => {
-        const type = file.originalname.split('.')[1];
-        const response = await axios.get(process.env.GET_FILE_TYPES_API_ROUTE);
-        if (response.data.length < 1) return cb(new HttpException('File types not found', HttpStatus.NOT_FOUND), false);
-        fileTypeConstant.setFileTypes(response.data);
-
-        const findType = fileTypeConstant.FILE.test(type);
-
-        if (!findType) { return cb(new HttpException('File format wrong!', HttpStatus.NOT_FOUND), false); }
-
+        const type = file.originalname.split('.')[file.originalname.split('.').length - 1];
+        // Öncül basit filtrasyon
+        if(type.toLowerCase() === 'exe' || type.toLowerCase() === 'sql') {
+            return cb(new HttpException('File type not allowed', HttpStatus.BAD_REQUEST), false);
+        }
         return cb(null, true);
     }
 });
-
 
 export const FileApiOptions = () => ({ // Swagger Api Options
     schema: {

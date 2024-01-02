@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
 import { FileDto, FileTypeDto } from './dto/file.dto';
-import { FileDestinationConstant } from './options/file.constant';
+import { FileDestinationConstant, FileTypeConstant } from './options/file.constant';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { File } from './entities/file.entity';
@@ -45,22 +45,38 @@ export class FileService {
         }
     }
 
-    async uploadFile(file: FileDto, route: string) {
-
+    async uploadFile(file: FileDto, route: string, res: Response) {
         try {
-            const fileType = file.originalname.split('.')[1];
+            // **** Geçiçi olarak yüklenen dosya üzerinden type kontrolu sağlanıyor. ****
+            const fileTypeConstant = new FileTypeConstant;
+            fileTypeConstant.setFileTypes(await this.getFileTypes());
+            const tempFileBuffer = fs.readFileSync(file.path); // Geçiçi olarak yüklenen dosya okunuyor.
+            const fileTypeFromBuffer = await import('file-type').then(({fromBuffer}) => fromBuffer(tempFileBuffer) ); // file bufferdan mime type cekıldı.
+            if (fileTypeFromBuffer == undefined || !fileTypeFromBuffer.mime){ // eğer mime type yoksa dosya silinir ve hata döndürülür.
+                fs.unlinkSync(file.path); // kabul edilmediği için dosya silindi.
+                return res.status(400).json({ message : 'File type cannot read.' });
+            } 
+            const isAccepted = fileTypeConstant.FILE_TYPES.map(fileType => { // file type kontrolu
+                if (fileType.mime_type == fileTypeFromBuffer.mime) {
+                    return true; // file type kabul edildi.
+                }
+            });
+            if (!isAccepted.includes(true)) { // file type kontrolu , eğer biri bile true döndürmezse kabul edilmedi.
+                fs.unlinkSync(file.path); // kabul edilmediği için dosya silindi.
+                return res.status(400).json({ message : 'File type not accepted.', file_extension : fileTypeFromBuffer.ext, file_mime_type : fileTypeFromBuffer.mime});
+            }
+            // **** Geçiçi olarak yüklenen dosya üzerinden type kontrolu sağlanıyor. ****
 
-            const findType = await this.findFileType(fileType);
-            if (!findType) { throw new HttpException('File not found', HttpStatus.NOT_FOUND); }
-
-            let filePath = findType.type;
+            const fileType = fileTypeConstant.FILE_TYPES.find(type => type.mime_type == fileTypeFromBuffer.mime);
+            
+            let filePath = fileType.type;
             const pathFix = file.path.replace(/\\/g, '/'), oldPath = pathFix.replace(file.filename, '');
             const newPath = `${oldPath}${route}/${filePath}`;
 
             file.originalname = await this.fillEmpty(file.originalname);
             file.alt = await this.fillEmpty(file.originalname);
             file.destination += `/${route}/${filePath}/${file.filename}`;
-            file.type_id = findType.id;
+            file.type_id = fileType.id;
             file.path = `/${route}/${filePath}/${file.filename}`;
 
             const create = this.fileRepository.create(file);
@@ -70,10 +86,10 @@ export class FileService {
 
             if (!fs.existsSync(newPath)) { fs.mkdirSync(newPath, { recursive: true }); }
             fs.renameSync(`${oldPath}${file.filename}`, `${newPath}/${file.filename}`);
-            return result;
+            return res.status(HttpStatus.OK).json(result);
         }
         catch (err) {
-            throw new HttpException('Something went wrong', HttpStatus.BAD_REQUEST);
+            return res.status(HttpStatus.BAD_REQUEST).json({ message: err.message });
         }
     }
 
